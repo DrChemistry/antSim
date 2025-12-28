@@ -2,6 +2,8 @@ use bevy::prelude::*;
 
 mod ant;
 mod base;
+mod chart_data;
+mod chart_generator;
 mod config;
 mod food;
 mod gui;
