@@ -39,10 +39,11 @@ pub fn move_ants(
     base_pos: Query<&Transform, (With<crate::base::Base>, Without<Ant>)>,
     food_query: Query<&Transform, (With<crate::food::FoodSource>, Without<Ant>)>,
 ) {
+    use crate::marker::{get_front_cells, world_to_grid};
+
     const ANT_SPEED: f32 = 50.0;
     const DIRECTION_CHANGE_INTERVAL: f32 = 1.5;
     const COLLISION_THRESHOLD: f32 = 5.0;
-    const FOOD_DETECTION_RADIUS: f32 = 50.0; // Radius to detect nearby food
 
     let dt = time.delta_seconds();
 
@@ -51,25 +52,32 @@ pub fn move_ants(
             AntState::Searching => {
                 let ant_pos = transform.translation.truncate();
                 let mut closest_food: Option<Vec2> = None;
-                let mut closest_distance = FOOD_DETECTION_RADIUS;
+                let mut closest_distance = f32::INFINITY;
 
-                // Check for nearby food sources
+                // Get the 3x3 grid cells in front of the ant
+                let front_cells = get_front_cells(ant_pos, ant.velocity);
+
+                // Check for food sources only in the front cells
                 for food_transform in food_query.iter() {
                     let food_pos = food_transform.translation.truncate();
-                    let distance = ant_pos.distance(food_pos);
+                    let food_cell = world_to_grid(food_pos);
 
-                    if distance < closest_distance {
-                        closest_distance = distance;
-                        closest_food = Some(food_pos);
+                    // Only check food if it's in one of the front cells
+                    if front_cells.contains(&food_cell) {
+                        let distance = ant_pos.distance(food_pos);
+                        if distance < closest_distance {
+                            closest_distance = distance;
+                            closest_food = Some(food_pos);
+                        }
                     }
                 }
 
-                // If food is nearby, move directly toward it
+                // If food is in front, move directly toward it
                 if let Some(food_pos) = closest_food {
                     let direction_to_food = (food_pos - ant_pos).normalize();
                     ant.velocity = direction_to_food;
                 } else {
-                    // No food nearby, continue with normal searching behavior
+                    // No food in front, continue with normal searching behavior
                     // Update direction change timer
                     ant.direction_change_timer += dt;
 
@@ -123,7 +131,8 @@ pub fn follow_markers(
     markers: Query<(&Marker, &Transform), (With<Marker>, Without<Ant>)>,
     grid_map: Res<GridMap>,
 ) {
-    const MARKER_DETECTION_RADIUS: f32 = 10.0;
+    use crate::marker::get_front_cells;
+
     const MAX_INTENSITY: f32 = 100.0;
     const INFLUENCE_STRENGTH: f32 = 0.3; // How much markers influence direction (0.0 to 1.0)
 
@@ -137,11 +146,11 @@ pub fn follow_markers(
         let ant_pos = ant_transform.translation.truncate();
         let mut strongest_marker: Option<(Vec2, f32)> = None; // (position, intensity)
 
-        // Get nearby grid cells
-        let nearby_cells = grid_map.get_nearby_cells(ant_pos, MARKER_DETECTION_RADIUS);
+        // Get the 3x3 grid cells in front of the ant
+        let front_cells = get_front_cells(ant_pos, ant.velocity);
 
-        // Check markers in nearby cells
-        for cell in nearby_cells {
+        // Check markers only in the front cells
+        for cell in front_cells {
             if let Some(cell_data) = grid_map.get_cell(cell) {
                 // Get the marker entity of the target type
                 let marker_entity = match target_marker_type {
@@ -157,19 +166,15 @@ pub fn follow_markers(
                         }
 
                         let marker_pos = marker_transform.translation.truncate();
-                        let distance = ant_pos.distance(marker_pos);
+                        // Use intensity as the strength
+                        let strength = marker.intensity;
 
-                        if distance <= MARKER_DETECTION_RADIUS {
-                            // Use intensity as the strength
-                            let strength = marker.intensity;
-
-                            if let Some((_, current_strength)) = strongest_marker {
-                                if strength > current_strength {
-                                    strongest_marker = Some((marker_pos, strength));
-                                }
-                            } else {
+                        if let Some((_, current_strength)) = strongest_marker {
+                            if strength > current_strength {
                                 strongest_marker = Some((marker_pos, strength));
                             }
+                        } else {
+                            strongest_marker = Some((marker_pos, strength));
                         }
                     }
                 }

@@ -152,6 +152,8 @@ pub fn render_grid(
 #[derive(Component)]
 pub struct GridLine;
 
+const MOVEMENT_SPEED: f32 = 5.0;
+
 pub fn camera_movement(
     keyboard_input: Res<Input<KeyCode>>,
     mut camera_query: Query<&mut Transform, (With<Camera>, Without<GridLine>)>,
@@ -166,16 +168,16 @@ pub fn camera_movement(
         // Also support wasd keys (English keyboard layout)
         // In Bevy 0.12, KeyCode variants use format Key<Letter>
         if keyboard_input.pressed(KeyCode::Z) || keyboard_input.pressed(KeyCode::W) {
-            movement.y += 2.0;
+            movement.y += MOVEMENT_SPEED;
         }
         if keyboard_input.pressed(KeyCode::Q) || keyboard_input.pressed(KeyCode::A) {
-            movement.x -= 2.0;
+            movement.x -= MOVEMENT_SPEED;
         }
         if keyboard_input.pressed(KeyCode::S) {
-            movement.y -= 2.0;
+            movement.y -= MOVEMENT_SPEED;
         }
         if keyboard_input.pressed(KeyCode::D) {
-            movement.x += 2.0;
+            movement.x += MOVEMENT_SPEED;
         }
 
         // Normalize diagonal movement

@@ -85,6 +85,59 @@ impl GridMap {
     }
 }
 
+// Get the 3x3 grid cells in front of the ant based on their velocity direction
+pub fn get_front_cells(pos: Vec2, velocity: Vec2) -> Vec<(i32, i32)> {
+    let current_cell = world_to_grid(pos);
+
+    // Normalize velocity to get direction
+    let direction = if velocity.length() > 0.01 {
+        velocity.normalize()
+    } else {
+        // Default to moving right if velocity is too small
+        Vec2::new(1.0, 0.0)
+    };
+
+    // Calculate which cell is directly in front
+    // We look 1-2 grid cells ahead in the direction of movement
+    // Use the dominant direction component to determine the front cell
+    let front_offset_x = if direction.x.abs() > direction.y.abs() {
+        // Moving more horizontally
+        direction.x.signum() as i32
+    } else if direction.x.abs() < direction.y.abs() {
+        // Moving more vertically
+        0
+    } else {
+        // Diagonal movement - use both components
+        direction.x.signum() as i32
+    };
+
+    let front_offset_y = if direction.y.abs() > direction.x.abs() {
+        // Moving more vertically
+        direction.y.signum() as i32
+    } else if direction.y.abs() < direction.x.abs() {
+        // Moving more horizontally
+        0
+    } else {
+        // Diagonal movement - use both components
+        direction.y.signum() as i32
+    };
+
+    // Center cell is the one directly in front (1 cell ahead)
+    let front_center_cell = (
+        current_cell.0 + front_offset_x,
+        current_cell.1 + front_offset_y,
+    );
+
+    // Get 3x3 grid centered on the front cell
+    let mut cells = Vec::new();
+    for dx in -1..=1 {
+        for dy in -1..=1 {
+            cells.push((front_center_cell.0 + dx, front_center_cell.1 + dy));
+        }
+    }
+    cells
+}
+
 // Convert world position to grid cell coordinates
 pub fn world_to_grid(pos: Vec2) -> (i32, i32) {
     (
