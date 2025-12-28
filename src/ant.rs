@@ -1,4 +1,4 @@
-use crate::marker::{Marker, MarkerType};
+use crate::marker::{GridMap, Marker, MarkerType};
 use bevy::prelude::*;
 use rand::Rng;
 
@@ -120,7 +120,8 @@ pub fn move_ants(
 
 pub fn follow_markers(
     mut ants: Query<(&Transform, &mut Ant)>,
-    markers: Query<(&Transform, &Marker), (With<Marker>, Without<Ant>)>,
+    markers: Query<(&Marker, &Transform), (With<Marker>, Without<Ant>)>,
+    grid_map: Res<GridMap>,
 ) {
     const MARKER_DETECTION_RADIUS: f32 = 10.0;
     const MAX_INTENSITY: f32 = 100.0;
@@ -136,25 +137,41 @@ pub fn follow_markers(
         let ant_pos = ant_transform.translation.truncate();
         let mut strongest_marker: Option<(Vec2, f32)> = None; // (position, intensity)
 
-        // Find the strongest marker of the appropriate type within detection radius
-        for (marker_transform, marker) in markers.iter() {
-            if marker.marker_type != target_marker_type {
-                continue;
-            }
+        // Get nearby grid cells
+        let nearby_cells = grid_map.get_nearby_cells(ant_pos, MARKER_DETECTION_RADIUS);
 
-            let marker_pos = marker_transform.translation.truncate();
-            let distance = ant_pos.distance(marker_pos);
+        // Check markers in nearby cells
+        for cell in nearby_cells {
+            if let Some(cell_data) = grid_map.get_cell(cell) {
+                // Get the marker entity of the target type
+                let marker_entity = match target_marker_type {
+                    MarkerType::Base => cell_data.base_marker,
+                    MarkerType::Food => cell_data.food_marker,
+                };
 
-            if distance <= MARKER_DETECTION_RADIUS {
-                // Use intensity as the strength (could also weight by distance if desired)
-                let strength = marker.intensity;
+                if let Some(entity) = marker_entity {
+                    // Query the marker to get its data
+                    if let Ok((marker, marker_transform)) = markers.get(entity) {
+                        if marker.marker_type != target_marker_type {
+                            continue;
+                        }
 
-                if let Some((_, current_strength)) = strongest_marker {
-                    if strength > current_strength {
-                        strongest_marker = Some((marker_pos, strength));
+                        let marker_pos = marker_transform.translation.truncate();
+                        let distance = ant_pos.distance(marker_pos);
+
+                        if distance <= MARKER_DETECTION_RADIUS {
+                            // Use intensity as the strength
+                            let strength = marker.intensity;
+
+                            if let Some((_, current_strength)) = strongest_marker {
+                                if strength > current_strength {
+                                    strongest_marker = Some((marker_pos, strength));
+                                }
+                            } else {
+                                strongest_marker = Some((marker_pos, strength));
+                            }
+                        }
                     }
-                } else {
-                    strongest_marker = Some((marker_pos, strength));
                 }
             }
         }
@@ -179,20 +196,23 @@ pub fn keep_ants_in_bounds(
     mut ants: Query<&mut Transform, With<Ant>>,
     config: Res<crate::config::Config>,
 ) {
-    let (map_width, map_height) = (config.map_size.0 as f32, config.map_size.1 as f32);
+    use crate::marker::GRID_CELL_SIZE;
+    // Map size in config is grid cells, convert to pixels
+    let map_width_pixels = config.map_size.0 as f32 * GRID_CELL_SIZE;
+    let map_height_pixels = config.map_size.1 as f32 * GRID_CELL_SIZE;
 
     for mut transform in ants.iter_mut() {
         // Wrap around horizontally: left to right, right to left
         if transform.translation.x < 0.0 {
-            transform.translation.x = map_width;
-        } else if transform.translation.x > map_width {
+            transform.translation.x = map_width_pixels;
+        } else if transform.translation.x > map_width_pixels {
             transform.translation.x = 0.0;
         }
 
         // Wrap around vertically: up to down, down to up
         if transform.translation.y < 0.0 {
-            transform.translation.y = map_height;
-        } else if transform.translation.y > map_height {
+            transform.translation.y = map_height_pixels;
+        } else if transform.translation.y > map_height_pixels {
             transform.translation.y = 0.0;
         }
     }

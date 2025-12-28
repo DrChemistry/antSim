@@ -1,14 +1,14 @@
 {
-  "map_size": [1200, 600],
-  "base_location": [100, 100],
+  "map_size": [100, 75],
+  "base_location": [50, 25],
   "food_locations": [
-    [600, 400],
-    [700, 200],
-    [300, 500]
+    [25, 25],
+    [25, 35],
+    [75, 25]
   ],
   "spawn_rate": 0,
   "marker_spawn_interval": 0.15,
-  "marker_lifetime": 15.0,
+  "marker_lifetime": 30.0,
   "initial_ant_count": 1000
 }
 

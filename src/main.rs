@@ -19,18 +19,16 @@ use simulation::SimulationPlugin;
 fn main() {
     // Load configuration
     let config = Config::load().expect("Failed to load config.json");
-    let (map_width, map_height) = (config.map_size.0 as f32, config.map_size.1 as f32);
 
-    // Calculate window size with padding around map (100-150 pixels on each side)
-    const WINDOW_PADDING: f32 = 120.0;
-    let window_width = map_width + (WINDOW_PADDING * 2.0);
-    let window_height = map_height + (WINDOW_PADDING * 2.0);
+    // Window size is independent of map size (can be smaller than map)
+    const WINDOW_WIDTH: f32 = 1024.0;
+    const WINDOW_HEIGHT: f32 = 768.0;
 
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Ant Simulation".into(),
-                resolution: (window_width, window_height).into(),
+                resolution: (WINDOW_WIDTH, WINDOW_HEIGHT).into(),
                 resizable: true,
                 ..default()
             }),
@@ -46,19 +44,20 @@ fn main() {
 }
 
 fn setup_camera(mut commands: Commands, config: Res<Config>) {
-    let (map_width, map_height) = (config.map_size.0 as f32, config.map_size.1 as f32);
+    use crate::marker::GRID_CELL_SIZE;
 
-    // Set up 2D camera with fixed projection matching map size
-    // This ensures the map doesn't scale when window is resized
+    // Map size in config is grid cells, convert to pixels
+    let map_width_pixels = config.map_size.0 as f32 * GRID_CELL_SIZE;
+    let map_height_pixels = config.map_size.1 as f32 * GRID_CELL_SIZE;
+
+    // Set up 2D camera with zoom support
+    // Start with a reasonable view size (e.g., 800x600 pixels visible area)
+    const INITIAL_VIEW_HEIGHT: f32 = 600.0;
     let mut camera = Camera2dBundle::default();
-    // Set fixed area to match map dimensions
-    // The area defines what the camera sees in world units, centered at origin
-    camera.projection.area = Rect {
-        min: Vec2::new(-map_width / 2.0, -map_height / 2.0),
-        max: Vec2::new(map_width / 2.0, map_height / 2.0),
-    };
+    camera.projection.scaling_mode =
+        bevy::render::camera::ScalingMode::FixedVertical(INITIAL_VIEW_HEIGHT);
     // Position camera at map center
-    camera.transform = Transform::from_xyz(map_width / 2.0, map_height / 2.0, 0.0);
+    camera.transform = Transform::from_xyz(map_width_pixels / 2.0, map_height_pixels / 2.0, 0.0);
 
     commands.spawn(camera);
 }
