@@ -6,6 +6,18 @@ use crate::marker::{spawn_markers, update_marker_visuals};
 use bevy::prelude::*;
 
 pub fn setup_simulation(mut commands: Commands, config: Res<Config>) {
+    // Spawn map background (lighter grey area representing the simulation playground)
+    let (map_width, map_height) = (config.map_size.0 as f32, config.map_size.1 as f32);
+    commands.spawn((SpriteBundle {
+        sprite: Sprite {
+            color: Color::rgb(0.9, 0.9, 0.9), // Lighter grey for map area
+            custom_size: Some(Vec2::new(map_width, map_height)),
+            ..default()
+        },
+        transform: Transform::from_xyz(map_width / 2.0, map_height / 2.0, -1.0), // Behind all entities
+        ..default()
+    },));
+
     // Spawn base
     let (base_x, base_y) = (config.base_location.0 as f32, config.base_location.1 as f32);
     commands.spawn((
