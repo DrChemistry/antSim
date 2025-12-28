@@ -88,7 +88,7 @@ pub fn update_marker_visuals(
         // Remove marker when timer finishes (reaches 0)
         if lifetime.timer.just_finished() {
             commands.entity(entity).despawn();
-            break;
+            continue;
         }
         let opacity = (marker.intensity / INITIAL_INTENSITY).clamp(0.0, 1.0);
 
