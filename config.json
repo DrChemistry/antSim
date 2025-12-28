@@ -9,6 +9,7 @@
   "spawn_rate": 0,
   "marker_spawn_interval": 0.15,
   "marker_lifetime": 30.0,
-  "initial_ant_count": 1000
+  "initial_ant_count": 1000,
+  "food_quantity": 100
 }
 

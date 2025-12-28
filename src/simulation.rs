@@ -59,6 +59,9 @@ pub fn setup_simulation(mut commands: Commands, config: Res<Config>) {
         let food_world_pos = grid_to_world(food_cell);
         commands.spawn((
             crate::food::FoodSource,
+            crate::food::FoodQuantity {
+                quantity: config.food_quantity,
+            },
             SpriteBundle {
                 sprite: Sprite {
                     color: Color::rgb(0.9, 0.7, 0.1),

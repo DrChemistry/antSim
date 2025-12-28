@@ -10,6 +10,7 @@ pub struct Config {
     pub marker_spawn_interval: f32,
     pub marker_lifetime: f32,
     pub initial_ant_count: u32,
+    pub food_quantity: u32,
 }
 
 impl Config {
